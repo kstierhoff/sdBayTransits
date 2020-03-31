@@ -1,0 +1,54 @@
+---
+title: "San Diego Bay Transits"
+author: "Kevin L. Stierhoff"
+date: "3/31/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# Install and load pacman (library management package)
+if (!require("pacman")) install.packages("pacman")
+
+# Install and load required packages from CRAN ---------------------------------
+pacman::p_load(tidyverse,lubridate,here,fs,ggmap,knitr,sf)
+
+# Register Google API
+register_google(google_map_api)
+
+# Controls
+get.nav <- FALSE
+save.figs <- FALSE
+
+```
+
+## Download nav data
+
+```{r get-nav, message=FALSE, warning=FALSE}
+if (get.nav) {
+  source(here("Code/get_nav.R"))
+  
+  if (save.figs) {
+    source(here("Code/map_nav.R"))
+  }
+}
+```
+
+
+## Map results
+
+### _Lasker_ transits
+
+```{r rl-map}
+include_graphics(here("Figs/lasker_plot.png"))
+```
+
+### _Shimada_ transits
+```{r sh-map}
+include_graphics(here("Figs/shimada_plot.png"))
+```
+
+
+### All transits
+```{r all-map}
+include_graphics(here("Figs/both_plots.png"))
+```
