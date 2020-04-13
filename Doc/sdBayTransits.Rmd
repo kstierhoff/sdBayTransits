@@ -10,14 +10,16 @@ output: html_document
 if (!require("pacman")) install.packages("pacman")
 
 # Install and load required packages from CRAN ---------------------------------
-pacman::p_load(tidyverse,lubridate,here,fs,ggmap,knitr,sf)
+pacman::p_load(tidyverse,lubridate,here,fs,ggmap,knitr,sf,rayshader,
+               raster)
 
 # Register Google API
 register_google(google_map_api)
 
 # Controls
-get.nav <- FALSE
-save.figs <- FALSE
+get.nav   <- TRUE
+save.figs <- TRUE
+render.hi <- FALSE
 
 ```
 
@@ -26,15 +28,17 @@ save.figs <- FALSE
 ```{r get-nav, message=FALSE, warning=FALSE}
 if (get.nav) {
   source(here("Code/get_nav.R"))
-  
-  if (save.figs) {
-    source(here("Code/map_nav.R"))
-  }
+} else {
+  load(here("Data/nav_data.Rdata"))
+}
+
+if (save.figs) {
+  source(here("Code/map_nav.R"))
 }
 ```
 
 
-## Map results
+## Map results-2D
 
 ### _Lasker_ transits
 
@@ -52,3 +56,6 @@ include_graphics(here("Figs/shimada_plot.png"))
 ```{r all-map}
 include_graphics(here("Figs/both_plots.png"))
 ```
+
+# Map results-3D
+## Rayshader
