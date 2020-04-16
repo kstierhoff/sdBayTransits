@@ -17,10 +17,10 @@
 # https://portal.opentopography.org/raster?opentopoID=OTSRTM.082015.4326.1
 
 
-sd.gebco.zoom <- raster::raster(here("Data/rayshader_tiffs", "sd_bay_srtm_zoom.tif")) %>%
+sd.zoom <- raster::raster(here::here("Data/rayshader_tiffs", "sd_bay_srtm_zoom.tif")) %>%
   raster_to_matrix()
 
-sd.gebco.wide <- raster::raster(here("Data/rayshader_tiffs", "sd_bay_srtm_wide.tif")) %>%
+sd.wide <- raster::raster(here("Data/rayshader_tiffs", "sd_bay_srtm_wide.tif")) %>%
   raster_to_matrix()
 
 # Programmatic TIFF extraction -------------------------------------------------
@@ -29,21 +29,21 @@ sd.gebco.wide <- raster::raster(here("Data/rayshader_tiffs", "sd_bay_srtm_wide.t
 
 # Try different options
 #We use another one of rayshader's built-in textures:
-sd.gebco.zoom %>%
+sd.zoom %>%
   sphere_shade(texture = "desert") %>%
   plot_map()
 
-sd.gebco.zoom %>%
+sd.zoom %>%
   sphere_shade(texture = "desert") %>%
-  add_water(detect_water(sd.gebco.zoom), color = "desert") %>%
+  add_water(detect_water(sd.zoom), color = "desert") %>%
   plot_map()
 
-sd.gebco.zoom %>%
+sd.zoom %>%
   sphere_shade(texture = "desert") %>%
-  add_water(detect_water(sd.gebco.zoom), color = "desert") %>%
-  add_shadow(ray_shade(sd.gebco.zoom, zscale = 3), 0.5) %>%
-  add_shadow(ambient_shade(sd.gebco.zoom), 0) %>%
-  plot_3d(sd.gebco.zoom, zscale = 4, fov = 0, theta = -10, zoom = 0.75, phi = 30, windowsize = c(1000, 800))
+  add_water(detect_water(sd.zoom), color = "desert") %>%
+  add_shadow(ray_shade(sd.zoom, zscale = 3), 0.5) %>%
+  add_shadow(ambient_shade(sd.zoom), 0) %>%
+  plot_3d(sd.zoom, zscale = 4, fov = 0, theta = -10, zoom = 0.75, phi = 30, windowsize = c(1000, 800))
 
 # Sys.sleep(0.2)
 if (render.hi) {
@@ -55,17 +55,17 @@ if (render.hi) {
 }
 
 # calculate rayshader layers
-ambmat <- ambient_shade(sd.gebco.zoom, zscale = 30)
-raymat <- ray_shade(sd.gebco.zoom, zscale = 30, lambert = TRUE)
-watermap <- detect_water(sd.gebco.zoom)
+ambmat <- ambient_shade(sd.zoom, zscale = 30)
+raymat <- ray_shade(sd.zoom, zscale = 30, lambert = TRUE)
+watermap <- detect_water(sd.zoom)
 
 # plot 2D
-sd.gebco.zoom %>%
+sd.zoom %>%
   sphere_shade(texture = "bw") %>%
-  # add_water(detect_water(sd.gebco.zoom), color = "desert") %>%
+  # add_water(detect_water(sd.zoom), color = "desert") %>%
   add_shadow(raymat, max_darken = 0.5) %>%
   # plot_map()
-  plot_3d(sd.gebco.zoom, zscale = 4, fov = 0, theta = -10, phi = 30,
+  plot_3d(sd.zoom, zscale = 4, fov = 0, theta = -10, phi = 30,
           windowsize = c(1000, 800), zoom = 0.75,
           water = FALSE, waterdepth = 0, wateralpha = 0.40, watercolor = "lightblue",
           waterlinecolor = "white", waterlinealpha = 0.5)
@@ -79,3 +79,7 @@ if (render.hi){
 } else {
   render_snapshot(here("Figs/sd_bay_rayrender_bw.png"), clear=TRUE)
 }
+
+# Slippymath
+# https://cran.r-project.org/web/packages/slippymath/vignettes/how-to-slippymath.html
+# https://cran.r-project.org/web/packages/slippymath/vignettes/fetching-elevation-rasters-from-mapbox.html

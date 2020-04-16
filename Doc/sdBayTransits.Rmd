@@ -10,15 +10,15 @@ output: html_document
 if (!require("pacman")) install.packages("pacman")
 
 # Install and load required packages from CRAN ---------------------------------
-pacman::p_load(tidyverse,lubridate,here,fs,ggmap,knitr,sf,rayshader,
-               raster)
+pacman::p_load(raster,tidyverse,lubridate,here,fs,ggmap,knitr,sf,rayshader,
+               elevatr,geoviz,tidync)
 
 # Register Google API
 register_google(google_map_api)
 
 # Controls
-get.nav   <- TRUE
-save.figs <- TRUE
+get.nav   <- FALSE
+save.figs <- FALSE
 render.hi <- FALSE
 
 ```
@@ -58,4 +58,16 @@ include_graphics(here("Figs/both_plots.png"))
 ```
 
 # Map results-3D
+## Get digital elevation model (DEM)
+
+```{r}
+
+```
+
+
 ## Rayshader
+
+```{r}
+
+```
+
