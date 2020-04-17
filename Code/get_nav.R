@@ -32,11 +32,6 @@ nav.temp <- left_join(nav.temp, nav.summ) %>%
   filter(!is.na(start.date)) %>%
   mutate(vessel.name = "Lasker")
 
-rl.plot <- ggplot(nav.temp, aes(long, lat)) +
-  geom_path() +
-  facet_wrap(~factor(start.date)) +
-  coord_map()
-
 write.csv(nav.summ, file = here::here("Output", "lasker_summary.csv"), quote = FALSE, row.names = FALSE)
 
 nav <- nav.temp
@@ -74,11 +69,6 @@ nav.summ <- nav.temp %>%
 nav.temp <- left_join(nav.temp, nav.summ) %>%
   filter(!is.na(start.date)) %>%
   mutate(vessel.name = "Shimada")
-
-sh.plot <- ggplot(nav.temp, aes(long, lat)) +
-  geom_path() +
-  facet_wrap(~factor(start.date)) +
-  coord_map()
 
 write.csv(nav.summ, file = here::here("Output", "shimada_summary.csv"), quote = FALSE, row.names = FALSE)
 

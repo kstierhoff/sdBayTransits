@@ -13,13 +13,32 @@ if (!require("pacman")) install.packages("pacman")
 pacman::p_load(raster,tidyverse,lubridate,here,fs,ggmap,knitr,sf,rayshader,
                elevatr,geoviz,tidync)
 
+# Install and load required packages from Github -------------------------------
+pacman::p_load_gh("kstierhoff/atm")
+
 # Register Google API
 register_google(google_map_api)
 
-# Controls
+# Configure webgl hooks
+# knit_hooks$set(webgl = hook_webgl)
+
+knitr::opts_chunk$set(echo = F, warning = F, message = F,
+                        fig.align = 'center', dev = "png", dpi = 150,
+                        dev.args = list(type = "cairo"))
+
+# Controls --------------------------
 get.nav   <- FALSE
 save.figs <- FALSE
 render.hi <- FALSE
+
+
+# Settings --------------------------
+# DEM processing
+dem.source <- "ngdc" # options: elevatr, marmap, slippy, ngdc
+
+# CSV processing
+krill.ext <- "Z Final Krill 200.csv"
+cps.ext   <- "Final 38 kHz CPS.csv"
 
 ```
 
@@ -34,40 +53,169 @@ if (get.nav) {
 
 if (save.figs) {
   source(here("Code/map_nav.R"))
+} else {
+  load(here("Output/nav_plots.Rdata"))
 }
 ```
 
-
-## Map results-2D
-
+## Map transits
 ### _Lasker_ transits
 
-```{r rl-map}
+```{r rl-transits}
 include_graphics(here("Figs/lasker_plot.png"))
 ```
 
 ### _Shimada_ transits
-```{r sh-map}
+
+```{r sh-transits}
 include_graphics(here("Figs/shimada_plot.png"))
 ```
 
 
 ### All transits
-```{r all-map}
+
+```{r all-transits}
 include_graphics(here("Figs/both_plots.png"))
+```
+
+# Process CSV files
+
+```{r process-csv}
+# Process CPS ----------------------------------
+# List all CSV files
+files.cps <- dir_ls(here("Data/backscatter"),
+                    regex = cps.ext, recurse = TRUE)
+
+# Extract CPS data
+nasc.cps <- data.frame()
+
+if (length(files.cps) > 0) {
+  # Process all .CSV files
+  for (ii in seq_along(files.cps)) {
+    # Extract vessel nasc
+    nasc.temp <- extract_csv(files.cps[ii]) %>% 
+      mutate(filename = basename(files.cps[ii]),
+             cruise =  str_split(filename, "_")[[1]][1],
+             type = "CPS")
+    
+    # Combine results
+    nasc.cps <- bind_rows(nasc.cps, nasc.temp)
+  }
+
+  # Save/load nasc.vessel (for debugging)
+  saveRDS(nasc.cps, 
+          file = here("Data/backscatter/nasc_cps_RAW.rds"))
+
+  # Get intervals with bad lat/long values
+  bad.nasc <- filter(nasc.cps, lat == 999, long == 999) %>% 
+    arrange(filename, datetime)
+  
+  if (nrow(bad.nasc) > 0) {
+    saveRDS(bad.nasc, here("Data/backscatter/nasc_cps_bad.rds"))  
+  }
+}
+
+# Process krill -------------------------------
+# List all CSV files
+files.krill <- dir_ls(here("Data/backscatter"),
+                      regex = krill.ext, recurse = TRUE)
+
+# Extract krill data
+nasc.krill <- data.frame()
+
+if (length(files.krill) > 0) {
+  # Process all .CSV files
+  for (ii in seq_along(files.krill)) {
+    # Extract vessel nasc
+    nasc.temp <- extract_csv(files.krill[ii]) %>% 
+      mutate(filename = basename(files.krill[ii]),
+             cruise =  str_split(filename, "_")[[1]][1],
+             type = "krill")
+    
+    # Combine results
+    nasc.krill <- bind_rows(nasc.krill, nasc.temp)
+  }
+
+  # Save/load nasc.vessel (for debugging)
+  saveRDS(nasc.krill, 
+          file = here("Data/backscatter/nasc_krill_RAW.rds"))
+
+  # Get intervals with bad lat/long values
+  bad.nasc <- filter(nasc.krill, lat == 999, long == 999) %>% 
+    arrange(filename, datetime)
+  
+  if (nrow(bad.nasc) > 0) {
+    saveRDS(bad.nasc, here("Data/backscatter/nasc_krill_bad.rds"))  
+  }
+}
+
+# Combine nasc
+nasc <- bind_rows(nasc.cps, nasc.krill)
+
+```
+
+# Plot CSV data
+## CPS backscatter
+
+```{r map-nasc-cps}
+map.cps.nasc <- ggmap(gg.map) +
+  geom_path(data = nasc.cps, 
+            aes(long, lat), colour = "white", alpha = 0.5) +
+  geom_point(data = filter(nasc.cps, NASC.350 > 0), 
+             aes(long, lat, size = NASC.350, fill = cruise), shape = 21, alpha = 0.5) + 
+  facet_wrap(~cruise)
+
+if (save.figs) {
+ggsave(map.cps.nasc, filename = here("Figs/fig_nasc_cps.png"),
+       height = 10, width = 10)
+}
+
+include_graphics(here("Figs/fig_nasc_cps.png"))
+```
+
+## Krill backscatter
+
+```{r map-nasc-krill}
+map.krill.nasc <- ggmap(gg.map) +
+  geom_path(data = nasc.krill, 
+            aes(long, lat), colour = "white", alpha = 0.5) +
+  geom_point(data = filter(nasc.krill, NASC.350 > 0), 
+             aes(long, lat, size = NASC.350, fill = cruise), shape = 21, alpha = 0.5) + 
+  facet_wrap(~cruise)
+
+if (save.figs) {
+ggsave(map.krill.nasc, filename = here("Figs/fig_nasc_krill.png"),
+       height = 10, width = 10)
+}
+
+include_graphics(here("Figs/fig_nasc_krill.png"))
 ```
 
 # Map results-3D
 ## Get digital elevation model (DEM)
 
-```{r}
+```{r, eval=FALSE}
 
 ```
 
 
 ## Rayshader
 
-```{r}
+```{r, eval=FALSE}
+# # Plot 3D
+# dem.mat %>%
+#   sphere_shade(texture = "desert") %>%
+#   add_shadow(ray_shade(dem.mat, zscale = 3), 0.5) %>%
+#   add_shadow(ambient_shade(dem.mat), 0) %>%
+#   plot_3d(dem.mat, zscale = 4, fov = 0, theta = 45, phi = 30,
+#           windowsize = c(1600, 800), zoom = .5,
+#           water = TRUE, waterdepth = 0, wateralpha = 0.35, watercolor = "lightblue",
+#           waterlinecolor = "white", waterlinealpha = 0.5, solid = FALSE)
 
+source(here("Code/get_netCDF.R"))
+
+rgl::rglwidget()
+rgl::rgl.close()
 ```
+
 

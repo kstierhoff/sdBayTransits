@@ -1,14 +1,26 @@
 # Save figures
 if (save.figs) {
+  # Plot Lasker transits
+  rl.plot <- ggplot(filter(nav, vessel.name == "Lasker"), aes(long, lat)) +
+    geom_path() +
+    facet_wrap(~factor(start.date)) +
+    coord_map()
+
+  # Plot Shimada transits
+  sh.plot <- ggplot(filter(nav, vessel.name == "Shimada"), aes(long, lat)) +
+    geom_path() +
+    facet_wrap(~factor(start.date)) +
+    coord_map()
+
   # Save individual plots
-  ggsave(rl.plot, filename = here::here("Figs", "lasker_plot.png"), width = 8, height = 8)
-  ggsave(sh.plot, filename = here::here("Figs", "shimada_plot.png"), width = 8, height = 8)
+  ggsave(rl.plot, filename = here::here("Figs/lasker_plot.png"), width = 8, height = 8)
+  ggsave(sh.plot, filename = here::here("Figs/shimada_plot.png"), width = 8, height = 8)
 
   map.center <- c(mean(range(nav$long)), mean(range(nav$lat)))
 
-  map <- get_googlemap(c(mean(range(nav$long)), mean(range(nav$lat))), maptype = "satellite", zoom = 12)
+  gg.map <- get_googlemap(c(mean(range(nav$long)), mean(range(nav$lat))), maptype = "satellite", zoom = 12)
 
-  saveRDS(map, here::here("Data", "sd_bay_ggmap.rds"))
+  saveRDS(gg.map, here::here("Data/sd_bay_ggmap.rds"))
 
   # Create land object for plotting
   usa <- map_data("usa")
@@ -22,7 +34,7 @@ if (save.figs) {
     sf::st_bbox()
 
   # Plot all transits
-  all.plot <- ggmap(map) +
+  all.plot <- ggmap(gg.map) +
     # geom_polygon(data = usa, aes(x = long, y = lat, group = group)) +
     geom_path(data = nav, aes(long, lat, group = cruise, colour = factor(cruise))) +
     facet_wrap(~vessel.name) +
@@ -35,3 +47,5 @@ if (save.figs) {
 
   ggsave(all.plot, filename = here::here("Figs", "both_plots.png"), width = 16, height = 8)
 }
+
+save(rl.plot, sh.plot, all.plot, gg.map, file = here("Output/nav_plots.Rdata"))

@@ -1,31 +1,22 @@
-library(raster)
-library(tidyverse)
-library(tidync)
-library(here)
-library(rayshader)
+dem.name <- here::here("Data/netCDF/san_diego_13_mhw_2012.nc")
 
-
-filename <- here::here("Data/netCDF/san_diego_13_mhw_2012.nc")
-
-tmp.tibble <- tidync(filename) %>%
+dem.df <- tidync(dem.name) %>%
   hyper_filter(lon = between(lon, -117.3, -117.15),
                lat = between(lat, 32.62, 32.8)) %>%
   hyper_tibble() %>%
   select(lon, lat, z = Band1)
 
-tmp.raster <- raster::rasterFromXYZ(tmp.tibble)
+dem.ras <- raster::rasterFromXYZ(dem.df)
 
-raster::crs(tmp.raster) <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+raster::crs(dem.ras) <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
 
-tmp.raster.red <- raster::aggregate(tmp.raster, fact = 4)
+dem.ras <- raster::aggregate(dem.ras, fact = 4)
 
-tmp.mat <- raster_to_matrix(tmp.raster)
+dem.mat <- raster_to_matrix(dem.ras)
 
-tmp.mat.red <- raster_to_matrix(tmp.raster.red)
-
-tmp.mat.red %>%
-sphere_shade(texture = "desert") %>%
-  plot_map()
+# dem.mat %>%
+#   sphere_shade(texture = "desert") %>%
+#   plot_map()
 
 
 # Subset nav
@@ -33,22 +24,21 @@ nav.sub <- nav %>%
   filter(cruise == 30) %>%
   mutate(alt = 1)
 
-rgl::rgl.clear()
+# rgl::rgl.clear()
 
 # Plot 3D
-tmp.mat.red %>%
-  sphere_shade(texture = "imhof4") %>%
-  add_water(detect_water(tmp.mat.red), color = "imhof4") %>%
-  add_shadow(ray_shade(tmp.mat.red, zscale = 3), 0.5) %>%
-  add_shadow(ambient_shade(tmp.mat.red), 0) %>%
-plot_3d(tmp.mat.red, zscale = 4, fov = 0, theta = 45, phi = 30,
-        windowsize = c(1000, 800), zoom = .5,
-        water = TRUE, waterdepth = 0, wateralpha = 0.35, watercolor = "lightblue",
-        waterlinecolor = "white", waterlinealpha = 0.5)
+dem.mat %>%
+  sphere_shade(texture = "desert") %>%
+  add_shadow(ray_shade(dem.mat, zscale = 3), 0.5) %>%
+  add_shadow(ambient_shade(dem.mat), 0) %>%
+  plot_3d(dem.mat, zscale = 4, fov = 0, theta = 45, phi = 30,
+          windowsize = c(1600, 1000), zoom = .6,
+          water = TRUE, waterdepth = 0, wateralpha = 0.35, watercolor = "lightblue",
+          waterlinecolor = "white", waterlinealpha = 0.5, solid = FALSE)
 
 # Add cruise track
 add_gps_to_rayshader(
-  tmp.raster.red,
+  dem.ras,
   nav.sub$lat,
   nav.sub$long,
   nav.sub$alt,
@@ -63,9 +53,9 @@ add_gps_to_rayshader(
 if (render.hi) {
   render_highquality(here("Figs/sd_bay_rayrender.png"),
                      lightdirection = 0, lightaltitude  = 30, clamp_value = 10,
-                     samples=200, clear=TRUE)
+                     samples=200)
 } else {
-  render_snapshot(here("Figs/sd_bay_rayrender.png"), clear=TRUE)
+  render_snapshot(here("Figs/sd_bay_rayrender.png"))
 }
 
 
