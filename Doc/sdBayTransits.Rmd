@@ -11,7 +11,7 @@ if (!require("pacman")) install.packages("pacman")
 
 # Install and load required packages from CRAN ---------------------------------
 pacman::p_load(raster,tidyverse,lubridate,here,fs,ggmap,knitr,sf,rayshader,
-               elevatr,geoviz,tidync)
+               elevatr,geoviz,tidync,janitor)
 
 # Install and load required packages from Github -------------------------------
 pacman::p_load_gh("kstierhoff/atm")
@@ -28,7 +28,7 @@ knitr::opts_chunk$set(echo = F, warning = F, message = F,
 
 # Controls --------------------------
 get.nav   <- FALSE
-save.figs <- FALSE
+save.figs <- TRUE
 render.hi <- FALSE
 
 
@@ -150,7 +150,26 @@ if (length(files.krill) > 0) {
 }
 
 # Combine nasc
-nasc <- bind_rows(nasc.cps, nasc.krill)
+nasc <- bind_rows(nasc.cps, nasc.krill) %>% 
+ mutate(group = paste(cruise, type)) %>% 
+  arrange(cruise, datetime)
+
+# Process hard bottom regions -------------------------
+# Get region descriptions
+hard.bottom <- data.frame()
+
+for (i in fs::dir_ls(here("Data/regions"), regexp = "*.csv")) {
+  filename <-
+
+    tmp <- read_csv(i) %>%
+    clean_names() %>%
+    mutate(cruise = unlist(str_split(basename(i), "_"))[1],
+           datetime = ymd_hms(paste(date_m, time_m))) %>%
+    rename(lat = lat_m,
+           long = lon_m)
+
+  hard.bottom <- bind_rows(hard.bottom, tmp)
+}
 
 ```
 
@@ -159,10 +178,11 @@ nasc <- bind_rows(nasc.cps, nasc.krill)
 
 ```{r map-nasc-cps}
 map.cps.nasc <- ggmap(gg.map) +
-  geom_path(data = nasc.cps, 
-            aes(long, lat), colour = "white", alpha = 0.5) +
+  geom_point(data = nasc.cps, 
+            aes(long, lat), colour = "white", alpha = 0.5, size = 0.1) +
   geom_point(data = filter(nasc.cps, NASC.350 > 0), 
              aes(long, lat, size = NASC.350, fill = cruise), shape = 21, alpha = 0.5) + 
+  geom_point(data = hard.bottom, aes(long, lat, size = dist_m), colour = "white") + 
   facet_wrap(~cruise)
 
 if (save.figs) {
@@ -177,10 +197,11 @@ include_graphics(here("Figs/fig_nasc_cps.png"))
 
 ```{r map-nasc-krill}
 map.krill.nasc <- ggmap(gg.map) +
-  geom_path(data = nasc.krill, 
-            aes(long, lat), colour = "white", alpha = 0.5) +
+   geom_point(data = nasc.krill, 
+            aes(long, lat), colour = "white", alpha = 0.5, size = 0.1) +
   geom_point(data = filter(nasc.krill, NASC.350 > 0), 
              aes(long, lat, size = NASC.350, fill = cruise), shape = 21, alpha = 0.5) + 
+  geom_point(data = hard.bottom, aes(long, lat, size = dist_m), colour = "white") + 
   facet_wrap(~cruise)
 
 if (save.figs) {
@@ -190,6 +211,43 @@ ggsave(map.krill.nasc, filename = here("Figs/fig_nasc_krill.png"),
 
 include_graphics(here("Figs/fig_nasc_krill.png"))
 ```
+## Hard substrate
+
+```{r map-seabed}
+# Get region descriptions
+hard.bottom <- data.frame()
+
+for (i in fs::dir_ls(here("Data/regions"), regexp = "*.csv")) {
+  filename <-
+
+    tmp <- read_csv(i) %>%
+    clean_names() %>%
+    mutate(filename = unlist(str_split(basename(i), "_"))[1],
+           datetime = ymd_hms(paste(date_m, time_m))) %>%
+    rename(lat = lat_m,
+           long = lon_m)
+
+  hard.bottom <- bind_rows(hard.bottom, tmp)
+}
+
+# Map hard substrate
+map.hard.substrate <- ggmap(gg.map) +
+  geom_point(data = nasc, 
+            aes(long, lat), colour = "white", alpha = 0.5, size = 0.1) +
+  geom_point(data = hard.bottom, aes(long, lat, size = dist_m, colour = filename)) +
+  theme_bw() +
+  coord_map()
+
+if (save.figs) {
+ggsave(map.hard.substrate, filename = here("Figs/fig_hard_substrate.png"),
+       height = 10, width = 10)
+}
+
+include_graphics(here("Figs/fig_hard_substrate.png"))
+
+```
+
+
 
 # Map results-3D
 ## Get digital elevation model (DEM)
@@ -215,7 +273,7 @@ include_graphics(here("Figs/fig_nasc_krill.png"))
 source(here("Code/get_netCDF.R"))
 
 rgl::rglwidget()
-rgl::rgl.close()
+# rgl::rgl.close()
 ```
 
 
